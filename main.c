@@ -3,17 +3,29 @@
 #include "clay.h"
 #include "raylib/clay_renderer_raylib.c"
 
-// 16:9 resolution
-const float ScreenWidth = 1408.0f;
-const float ScreenHeight = 792.0f;
-
 const Clay_Color COLOR_LIGHT = (Clay_Color){224, 215, 210, 255};
 const Clay_Color COLOR_RED = (Clay_Color){168, 66, 28, 255};
 const Clay_Color COLOR_ORANGE = (Clay_Color){225, 138, 50, 255};
 const Clay_Color COLOR_WHITE = (Clay_Color){.r = 255, .g = 255, .b = 255};
 const Clay_Color COLOR_DARK = (Clay_Color){100, 100, 100, 255};
 
-Clay_RenderCommandArray BuildLayout(void)
+// Declaring FONT IDs
+const uint32_t FONT_ID_NORMAL_16 = 0;
+const uint32_t FONT_ID_NORMAL_24 = 1;
+const uint32_t FONT_ID_BOLD_16 = 2;
+const uint32_t FONT_ID_BOLD_24 = 3;
+const uint32_t FONT_ID_ITALIC_16 = 4;
+const uint32_t FONT_ID_ITALIC_24 = 5;
+const uint32_t FONT_ID_TITLE = 6;
+
+const Clay_TextElementConfig headerTextConfig = (Clay_TextElementConfig){.fontId = FONT_ID_TITLE, .fontSize = 36, .textColor = COLOR_DARK};
+const Clay_TextElementConfig footerTextConfig = (Clay_TextElementConfig){.fontId = FONT_ID_BOLD_16, .fontSize = 16, .textColor = COLOR_DARK};
+
+// 16:9 resolution
+const float ScreenWidth = 1400.0f; // UPDATED
+const float ScreenHeight = 850.0f; // UPDATED
+
+Clay_RenderCommandArray build_layout(void)
 {
   // Create layout
   Clay_BeginLayout();
@@ -21,19 +33,20 @@ Clay_RenderCommandArray BuildLayout(void)
   CLAY(CLAY_ID("Main"), CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16}), CLAY_RECTANGLE({.color = COLOR_DARK}))
   {
     CLAY(CLAY_ID("Header"),
-         CLAY_LAYOUT({.sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(50)}, .childAlignment = {0, CLAY_ALIGN_Y_CENTER}, .childGap = 16, .padding = {32}}),
+         CLAY_LAYOUT({.sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(50)}, .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER}, .childGap = 16, .padding = {32}}),
          CLAY_RECTANGLE({.color = COLOR_LIGHT, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
     {
+      CLAY_TEXT(CLAY_STRING("Mars Rover Control Panel"), CLAY_TEXT_CONFIG(headerTextConfig));
     }
 
     CLAY(CLAY_ID("CenterContainer"), CLAY_LAYOUT({.sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, .childGap = 16}), CLAY_RECTANGLE({.color = COLOR_DARK}))
     {
-
       CLAY(CLAY_ID("SideBar1"),
            CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16}),
            CLAY_RECTANGLE({.color = COLOR_LIGHT, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
       {
       }
+
       CLAY(CLAY_ID("MainContent"),
            CLAY_LAYOUT({.sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW()}}),
            CLAY_RECTANGLE({.color = COLOR_LIGHT, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
@@ -48,13 +61,26 @@ Clay_RenderCommandArray BuildLayout(void)
     }
 
     CLAY(CLAY_ID("Footer"),
-         CLAY_LAYOUT({.sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(200)}, .childAlignment = {0, CLAY_ALIGN_Y_CENTER}, .childGap = 16, .padding = {32}}),
+         CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(200)}, .childAlignment = {0, 0}, .childGap = 16, .padding = {32}}),
          CLAY_RECTANGLE({.color = COLOR_LIGHT, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
     {
+      CLAY_TEXT(CLAY_STRING(""), CLAY_TEXT_CONFIG(footerTextConfig));
+      CLAY_TEXT(CLAY_STRING("> Samples Collected by Rover"), CLAY_TEXT_CONFIG(footerTextConfig));
+      CLAY_TEXT(CLAY_STRING("> issued command: Power Thrusters"), CLAY_TEXT_CONFIG(footerTextConfig));
+      CLAY_TEXT(CLAY_STRING("> issued command: Power On"), CLAY_TEXT_CONFIG(footerTextConfig));
+      CLAY_TEXT(CLAY_STRING("> issued command: Power Off"), CLAY_TEXT_CONFIG(footerTextConfig));
+      CLAY_TEXT(CLAY_STRING("> issued command: Power On"), CLAY_TEXT_CONFIG(footerTextConfig));
     }
   }
 
   return Clay_EndLayout();
+}
+
+void insert_font(uint32_t font_id, int font_size, const char *path)
+{
+  Raylib_fonts[font_id].fontId = font_id;
+  Raylib_fonts[font_id].font = LoadFontEx(path, font_size * 2, NULL, 0);
+  SetTextureFilter(Raylib_fonts[font_id].font.texture, TEXTURE_FILTER_TRILINEAR);
 }
 
 int main(void)
@@ -78,6 +104,14 @@ int main(void)
   // ...more init??
   SetTargetFPS(144);
 
+  insert_font(FONT_ID_NORMAL_16, 16, "resources/0xProto-Regular.ttf");
+  insert_font(FONT_ID_NORMAL_24, 24, "resources/0xProto-Regular.ttf");
+  insert_font(FONT_ID_BOLD_16, 16, "resources/0xProto-Bold.ttf");
+  insert_font(FONT_ID_BOLD_24, 24, "resources/0xProto-Bold.ttf");
+  insert_font(FONT_ID_ITALIC_16, 16, "resources/0xProto-Italic.ttf");
+  insert_font(FONT_ID_ITALIC_24, 24, "resources/0xProto-Italic.ttf");
+  insert_font(FONT_ID_TITLE, 36, "resources/0xProto-Regular.ttf");
+
   // Main application loop
   while (!WindowShouldClose())
   {
@@ -100,7 +134,7 @@ int main(void)
     };
     Clay_UpdateScrollContainers(true, mouseWheelDelta, dt);
 
-    Clay_RenderCommandArray renderCommands = BuildLayout();
+    Clay_RenderCommandArray renderCommands = build_layout();
 
     // Render stuff
     BeginDrawing();
