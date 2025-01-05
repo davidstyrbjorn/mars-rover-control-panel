@@ -3,13 +3,20 @@
 #include "clay.h"
 #include "raylib/clay_renderer_raylib.c"
 
+// =================================
+//              COLORS
+// =================================
 const Clay_Color COLOR_LIGHT = (Clay_Color){224, 215, 210, 255};
 const Clay_Color COLOR_RED = (Clay_Color){168, 66, 28, 255};
 const Clay_Color COLOR_ORANGE = (Clay_Color){225, 138, 50, 255};
 const Clay_Color COLOR_WHITE = (Clay_Color){.r = 255, .g = 255, .b = 255};
 const Clay_Color COLOR_DARK = (Clay_Color){100, 100, 100, 255};
+const Clay_Color COLOR_BUTTON = (Clay_Color){20, 20, 20, 255};
+const Clay_Color COLOR_BUTTON_HOVER = (Clay_Color){40, 40, 40, 255};
 
-// Declaring FONT IDs
+// =================================
+//            FONT IDS
+// =================================
 const uint32_t FONT_ID_NORMAL_16 = 0;
 const uint32_t FONT_ID_NORMAL_24 = 1;
 const uint32_t FONT_ID_BOLD_16 = 2;
@@ -18,12 +25,38 @@ const uint32_t FONT_ID_ITALIC_16 = 4;
 const uint32_t FONT_ID_ITALIC_24 = 5;
 const uint32_t FONT_ID_TITLE = 6;
 
+// =================================
+//      ELEMENT CONFIGURATIONS
+// =================================
 const Clay_TextElementConfig headerTextConfig = (Clay_TextElementConfig){.fontId = FONT_ID_TITLE, .fontSize = 36, .textColor = COLOR_DARK};
 const Clay_TextElementConfig footerTextConfig = (Clay_TextElementConfig){.fontId = FONT_ID_BOLD_16, .fontSize = 16, .textColor = COLOR_DARK};
+const Clay_TextElementConfig buttonTextConfig = (Clay_TextElementConfig){.fontId = FONT_ID_NORMAL_24, .fontSize = 24, .textColor = COLOR_LIGHT};
+
+Clay_LayoutConfig buttonLayoutConfig = {
+    .sizing = {
+        .width = CLAY_SIZING_GROW(),
+        .height = CLAY_SIZING_FIXED(50),
+    },
+    .childAlignment = {.y = CLAY_ALIGN_Y_CENTER, .x = CLAY_ALIGN_X_CENTER},
+};
 
 // 16:9 resolution
 const float ScreenWidth = 1400.0f; // UPDATED
 const float ScreenHeight = 850.0f; // UPDATED
+
+void handle_button_interaction(Clay_ElementId elementId, Clay_PointerData pointerInfo, intptr_t userData)
+{
+}
+
+void button_element(const char *id, Clay_String text)
+{
+  CLAY(CLAY_ID(id),
+       CLAY_LAYOUT(buttonLayoutConfig),
+       CLAY_RECTANGLE({.color = Clay_Hovered() ? COLOR_BUTTON_HOVER : COLOR_BUTTON}))
+  {
+    CLAY_TEXT(text, CLAY_TEXT_CONFIG(buttonTextConfig));
+  }
+}
 
 Clay_RenderCommandArray build_layout(void)
 {
@@ -45,6 +78,14 @@ Clay_RenderCommandArray build_layout(void)
            CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16}),
            CLAY_RECTANGLE({.color = COLOR_LIGHT, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
       {
+        // When id's are button_1, button_2, button_3, button_4, they all seem to get the same hash?
+        // Should investigate the exact output of the clay hashing function
+        // assert(Clay__HashString(CLAY_STRING("button_1"), 0, 0) == Clay__HashString(CLAY_STRING("button_1"), 0, 0)); ??????
+
+        button_element("button_1", CLAY_STRING("Power On"));
+        button_element("button_2", CLAY_STRING("Power Thrusters"));
+        button_element("button_3", CLAY_STRING("Collect Samples"));
+        button_element("button_4", CLAY_STRING("Emergency Shutdown"));
       }
 
       CLAY(CLAY_ID("MainContent"),
