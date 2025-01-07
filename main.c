@@ -31,7 +31,7 @@ const uint32_t FontIdTitle = 6;
 const Clay_TextElementConfig HeaderTextConfig = (Clay_TextElementConfig){.fontId = FontIdTitle, .fontSize = 36, .textColor = ColorText};
 const Clay_TextElementConfig FooterTextConfig = (Clay_TextElementConfig){.fontId = FontIdBold24, .fontSize = 24, .textColor = ColorText};
 const Clay_TextElementConfig ButtonTextConfig = (Clay_TextElementConfig){.fontId = FontIdNormal24, .fontSize = 24, .textColor = ColorText};
-Clay_LayoutConfig buttonLayoutConfig = {
+const Clay_LayoutConfig buttonLayoutConfig = {
     .sizing = {
         .width = CLAY_SIZING_GROW(),
         .height = CLAY_SIZING_FIXED(50),
@@ -46,8 +46,11 @@ static const char *PowerOnButtonID = "power-on-btn";
 static const char *PowerThrustersButtonID = "power-thrusters-btn";
 static const char *CollectSamplesButtonID = "collect-samples-btn";
 static const char *EmergencyShutdownButtonID = "emergency-shutdown-btn";
-static const char *InitControlledDescendButtonID = "init-controlled-descend-btn";
+static const char *InitDescendButtonID = "init-controlled-descend-btn";
 static const char *InitManualControlButtonID = "init-manual-control-btn";
+static const char *ArrowRightButtonID = "arrow-right-button-id";
+static const char *ArrowLeftButtonID = "arrow-left-button-id";
+static const char *ArrowUpButtonID = "arrow-up-button-id";
 
 // 16:9 resolution
 const float ScreenWidth = 1400.0f; // UPDATED
@@ -83,6 +86,25 @@ void emergency_shutdown_button(void)
   printf("Emergency shutdown\n");
 }
 
+void init_descend_button(void)
+{
+  printf("Init descend\n");
+}
+
+void init_manual_control_button(void)
+{
+  printf("Init Manual Control\n");
+}
+
+void up_arrow_button(void)
+{
+  printf("Up arrow\n");
+}
+
+void left_arrow_button(void) {}
+
+void right_arrow_button(void) {}
+
 void handle_button_interaction(Clay_ElementId element_id, Clay_PointerData pointerInfo, intptr_t userData)
 {
   if (pointerInfo.state == CLAY_POINTER_DATA_PRESSED_THIS_FRAME)
@@ -103,6 +125,17 @@ void button_element(const char *id, Clay_String text, ButtonCallback callback)
        Clay_OnHover(handle_button_interaction, (intptr_t)callback))
   {
     CLAY_TEXT(text, CLAY_TEXT_CONFIG(ButtonTextConfig));
+  }
+}
+
+void arrow_button_element(const char *id, Texture *texture, ButtonCallback callback)
+{
+  CLAY(CLAY_ID(id),
+       CLAY_LAYOUT({.sizing = {.width = CLAY_SIZING_FIXED(90), .height = CLAY_SIZING_FIXED(90)}}),
+       CLAY_RECTANGLE({.color = Clay_Hovered() ? ColorButtonHover : ColorButton, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}),
+       CLAY_IMAGE({.sourceDimensions = {ArrowImageSize, ArrowImageSize}, .imageData = texture}),
+       Clay_OnHover(handle_button_interaction, (intptr_t)callback))
+  {
   }
 }
 
@@ -144,30 +177,15 @@ Clay_RenderCommandArray build_layout(void)
            CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = 0}}),
            CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
       {
-        CLAY(CLAY_ID("UpArrowImage"),
-             CLAY_LAYOUT({.sizing = {.width = CLAY_SIZING_FIXED(90), .height = CLAY_SIZING_FIXED(90)}}),
-             CLAY_RECTANGLE({.color = Clay_Hovered() ? ColorButtonHover : ColorButton, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}),
-             CLAY_IMAGE({.sourceDimensions = {ArrowImageSize, ArrowImageSize}, .imageData = &upArrowTexture}))
-        {
-        }
+        arrow_button_element(ArrowUpButtonID, &upArrowTexture, up_arrow_button);
         CLAY(CLAY_ID("ArrowBottomRow"),
              CLAY_LAYOUT({.layoutDirection = CLAY_LEFT_TO_RIGHT, .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)}, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = 0}, .childGap = 78}))
         {
-          CLAY(CLAY_ID("LeftArrowImage"),
-               CLAY_LAYOUT({.sizing = {.width = CLAY_SIZING_FIXED(90), .height = CLAY_SIZING_FIXED(90)}}),
-               CLAY_RECTANGLE({.color = Clay_Hovered() ? ColorButtonHover : ColorButton, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}),
-               CLAY_IMAGE({.sourceDimensions = {ArrowImageSize, ArrowImageSize}, .imageData = &leftArrowTexture}))
-          {
-          }
-          CLAY(CLAY_ID("RightArrowImage"),
-               CLAY_LAYOUT({.sizing = {.width = CLAY_SIZING_FIXED(90), .height = CLAY_SIZING_FIXED(90)}}),
-               CLAY_RECTANGLE({.color = Clay_Hovered() ? ColorButtonHover : ColorButton, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}),
-               CLAY_IMAGE({.sourceDimensions = {ArrowImageSize, ArrowImageSize}, .imageData = &rightArrowTexture}))
-          {
-          }
+          arrow_button_element(ArrowLeftButtonID, &leftArrowTexture, left_arrow_button);
+          arrow_button_element(ArrowRightButtonID, &rightArrowTexture, right_arrow_button);
         }
-        button_element(InitControlledDescendButtonID, CLAY_STRING("Init Descend"), power_on_button);
-        button_element(InitManualControlButtonID, CLAY_STRING("Init Manual Control"), power_on_button);
+        button_element(InitDescendButtonID, CLAY_STRING("Init Descend"), init_descend_button);
+        button_element(InitManualControlButtonID, CLAY_STRING("Init Manual Control"), init_manual_control_button);
       }
     }
 
