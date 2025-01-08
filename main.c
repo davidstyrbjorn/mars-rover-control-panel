@@ -63,6 +63,14 @@ Texture leftArrowTexture;
 Texture upArrowTexture;
 const float ArrowImageSize = 80;
 
+Clay_LayoutElement *mainLayoutElement;
+typedef struct GameWindow
+{
+  Rectangle window_rect;
+  RenderTexture2D game_texture;
+} GameWindow;
+GameWindow gameWindow;
+
 // =================================
 //          BUTTON CALLBACKS
 // =================================
@@ -170,6 +178,7 @@ Clay_RenderCommandArray build_layout(void)
       CLAY(CLAY_ID("MainContent"),
            CLAY_LAYOUT({.sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW()}}),
            CLAY_RECTANGLE({.color = ColorBlack, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+      mainLayoutElement = Clay__GetOpenLayoutElement();
       {
       }
 
@@ -248,10 +257,19 @@ int main(void)
   leftArrowTexture = LoadTextureFromImage(LoadImage("resources/arrow-left.png"));
   upArrowTexture = LoadTextureFromImage(LoadImage("resources/arrow-up.png"));
 
+  gameWindow.game_texture = LoadRenderTexture(400, 300);
+  gameWindow.window_rect = (Rectangle){0, 0, 400, 300};
+
   // Main application loop
   while (!WindowShouldClose())
   {
     float dt = GetFrameTime();
+
+    // Handle resize
+    if (IsWindowResized())
+    {
+      Clay__layoutDimensions = (Clay_Dimensions){GetScreenWidth(), GetScreenHeight()};
+    }
 
     // Update states
     Vector2 raylibMousePosition = GetMousePosition();
@@ -270,13 +288,48 @@ int main(void)
 
     Clay_RenderCommandArray renderCommands = build_layout();
 
+    if (mainLayoutElement != NULL)
+    {
+      Clay_LayoutElementHashMapItem *mapItem = Clay__GetHashMapItem(mainLayoutElement->id);
+      Clay_BoundingBox elementBox = mapItem->boundingBox;
+      printf("x: %f, y: %f, width: %f, height: %f\n", elementBox.x, elementBox.y, elementBox.width, elementBox.height);
+      // gameWindow.window_rect = (Rectangle){elementBox.x, elementBox.y, elementBox.width, elementBox.height};
+      gameWindow.window_rect = (Rectangle){elementBox.x, elementBox.y, elementBox.width, 500};
+    }
+
+    gameWindow.game_texture.texture.width = gameWindow.window_rect.width;
+    gameWindow.game_texture.texture.height = gameWindow.window_rect.height;
+    // Render game scene to the render texture
+    BeginTextureMode(gameWindow.game_texture);
+    ClearBackground(BLACK); // Background color of the game
+    DrawRectangle(0, 0, 100, 100, RED);
+    EndTextureMode();
+
     // Render stuff
     BeginDrawing();
-    ClearBackground(BLACK);
-    // TODO: render the Clay layout
-    Clay_Raylib_Render(renderCommands);
+
+    ClearBackground(WHITE);
+    // Clay_Raylib_Render(renderCommands);
+
+    // Enable scissor mode to clip the game render if needed
+    BeginScissorMode(gameWindow.window_rect.x, gameWindow.window_rect.y, gameWindow.window_rect.width, gameWindow.window_rect.height);
+
+    // Draw the game render texture into the UI sub-rectangle
+    DrawTexturePro(gameWindow.game_texture.texture,
+                   (Rectangle){0, 0, gameWindow.game_texture.texture.width, -gameWindow.game_texture.texture.height}, // Flip vertically
+                   gameWindow.window_rect,
+                   (Vector2){0, 0},
+                   0.0f,
+                   WHITE);
+    // DrawTexture(gameWindow.game_texture.texture, gameWindow.window_rect.x, gameWindow.window_rect.y, WHITE);
+
+    EndScissorMode();
+
     EndDrawing();
   }
+
+  UnloadRenderTexture(gameWindow.game_texture);
+  CloseWindow();
 
   return 0;
 }
