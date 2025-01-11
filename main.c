@@ -3,6 +3,8 @@
 #include "clay.h"
 #include "raylib/clay_renderer_raylib.c"
 
+#include "lundar_lander.h"
+
 // =================================
 //              COLORS
 // =================================
@@ -68,8 +70,12 @@ typedef struct GameWindow
 {
   Rectangle window_rect;
   RenderTexture2D game_texture;
+  bool has_loaded_game_texture;
 } GameWindow;
-GameWindow gameWindow;
+
+GameWindow game_window = {
+    .has_loaded_game_texture = false,
+};
 
 // =================================
 //          BUTTON CALLBACKS
@@ -257,9 +263,6 @@ int main(void)
   leftArrowTexture = LoadTextureFromImage(LoadImage("resources/arrow-left.png"));
   upArrowTexture = LoadTextureFromImage(LoadImage("resources/arrow-up.png"));
 
-  gameWindow.game_texture = LoadRenderTexture(400, 300);
-  gameWindow.window_rect = (Rectangle){0, 0, 400, 300};
-
   // Main application loop
   while (!WindowShouldClose())
   {
@@ -288,47 +291,52 @@ int main(void)
 
     Clay_RenderCommandArray renderCommands = build_layout();
 
-    if (mainLayoutElement != NULL)
+    // Create the game texture
+    if (mainLayoutElement != NULL && !game_window.has_loaded_game_texture)
     {
       Clay_LayoutElementHashMapItem *mapItem = Clay__GetHashMapItem(mainLayoutElement->id);
       Clay_BoundingBox elementBox = mapItem->boundingBox;
-      printf("x: %f, y: %f, width: %f, height: %f\n", elementBox.x, elementBox.y, elementBox.width, elementBox.height);
-      // gameWindow.window_rect = (Rectangle){elementBox.x, elementBox.y, elementBox.width, elementBox.height};
-      gameWindow.window_rect = (Rectangle){elementBox.x, elementBox.y, elementBox.width, 500};
+      game_window.window_rect.width = elementBox.width;
+      game_window.window_rect.height = elementBox.height;
+      game_window.window_rect.x = elementBox.x;
+      game_window.window_rect.y = elementBox.y;
+      game_window.game_texture = LoadRenderTexture(elementBox.width, elementBox.height);
+      game_window.has_loaded_game_texture = true;
+
+      lunar_lander_init(game_window.window_rect.width, game_window.window_rect.height);
     }
 
-    gameWindow.game_texture.texture.width = gameWindow.window_rect.width;
-    gameWindow.game_texture.texture.height = gameWindow.window_rect.height;
-    // Render game scene to the render texture
-    BeginTextureMode(gameWindow.game_texture);
-    ClearBackground(BLACK); // Background color of the game
-    DrawRectangle(0, 0, 100, 100, RED);
-    EndTextureMode();
+    if (game_window.has_loaded_game_texture)
+    {
+      // Render game scene to the render texture
+      BeginTextureMode(game_window.game_texture);
+      ClearBackground(BLACK); // Background color of the game
+      lunar_lander_draw_line_sectors();
+      EndTextureMode();
+    }
 
     // Render stuff
     BeginDrawing();
 
     ClearBackground(WHITE);
-    // Clay_Raylib_Render(renderCommands);
+    Clay_Raylib_Render(renderCommands);
 
-    // Enable scissor mode to clip the game render if needed
-    BeginScissorMode(gameWindow.window_rect.x, gameWindow.window_rect.y, gameWindow.window_rect.width, gameWindow.window_rect.height);
-
-    // Draw the game render texture into the UI sub-rectangle
-    DrawTexturePro(gameWindow.game_texture.texture,
-                   (Rectangle){0, 0, gameWindow.game_texture.texture.width, -gameWindow.game_texture.texture.height}, // Flip vertically
-                   gameWindow.window_rect,
-                   (Vector2){0, 0},
-                   0.0f,
-                   WHITE);
-    // DrawTexture(gameWindow.game_texture.texture, gameWindow.window_rect.x, gameWindow.window_rect.y, WHITE);
-
-    EndScissorMode();
+    if (game_window.has_loaded_game_texture)
+    {
+      BeginScissorMode(game_window.window_rect.x, game_window.window_rect.y, game_window.window_rect.width, game_window.window_rect.height);
+      DrawTexturePro(game_window.game_texture.texture,
+                     (Rectangle){0, 0, game_window.game_texture.texture.width, -game_window.game_texture.texture.height}, // Flip vertically
+                     game_window.window_rect,
+                     (Vector2){0, 0},
+                     0.0f,
+                     WHITE);
+      EndScissorMode();
+    }
 
     EndDrawing();
   }
 
-  UnloadRenderTexture(gameWindow.game_texture);
+  UnloadRenderTexture(game_window.game_texture);
   CloseWindow();
 
   return 0;
