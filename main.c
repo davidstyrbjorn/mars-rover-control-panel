@@ -311,7 +311,7 @@ int main(void)
       // Render game scene to the render texture
       BeginTextureMode(game_window.game_texture);
       ClearBackground(BLACK); // Background color of the game
-      lunar_lander_draw_line_sectors();
+      lunar_lander_draw_map();
       EndTextureMode();
     }
 

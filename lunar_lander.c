@@ -1,6 +1,7 @@
 #include "lundar_lander.h"
 
 #include <time.h>
+#include <assert.h>
 
 static LunarLander lunar_lander;
 
@@ -9,47 +10,63 @@ void lunar_lander_init(int screen_width, int screen_height)
   SetRandomSeed((unsigned int)time(NULL));
 
   float x = 0;
-  float y = screen_height - LINE_SECTOR_START_Y;
-  const float delta_x = screen_width / LINE_SECTORS_NUM;
-  for (int i = 0; i < LINE_SECTORS_NUM; i++)
+  float start_y = screen_height - LINE_START_Y;
+  const float delta_x = (float)screen_width / LINE_NUM;
+
+  lunar_lander.lander_start_index = GetRandomValue(0, LINE_NUM / 2);
+  lunar_lander.lander_end_index = lunar_lander.lander_start_index + LANDER_LINE_NUM;
+  assert(lunar_lander.lander_end_index < LINE_NUM);
+
+  lunar_lander.lander_goal_start_index = GetRandomValue((LINE_NUM / 2) + 1, LINE_NUM - LANDER_LINE_NUM - 1);
+  lunar_lander.lander_goal_end_index = lunar_lander.lander_goal_start_index + LANDER_LINE_NUM;
+  assert(lunar_lander.lander_goal_end_index < LINE_NUM);
+
+  for (int i = 0; i < LINE_NUM; i++)
   {
-    lunar_lander.line_sectors[i] = (Vector2){
-        .x = x,
-        .y = y,
-    };
-    x += delta_x;
+    float last_y = start_y;
+    float random_offset = GetRandomValue(-LINE_OFFSET_Y, LINE_OFFSET_Y);
+    if (i != 0)
+    {
+      last_y = lunar_lander.lines[i - 1].end.y;
+    }
 
-    // Check the boundaries more precisely
-    bool forced_down = y > screen_height - LINE_SECTOR_START_Y + LINE_SECTOR_MAX_OFFSET_Y;
-    bool forced_up = y < screen_height - LINE_SECTOR_START_Y - LINE_SECTOR_MAX_OFFSET_Y;
+    bool plotting_start = i >= lunar_lander.lander_start_index && i < lunar_lander.lander_end_index;
+    bool plotting_goal = i >= lunar_lander.lander_goal_start_index && i < lunar_lander.lander_goal_end_index;
+    if (plotting_start || plotting_goal)
+    {
+      random_offset = 0;
+    }
 
-    // Gradually move up or down based on random chance
-    bool up = (bool)GetRandomValue(0, 1);
+    lunar_lander.lines[i] = (Line){
+        .start = (Vector2){
+            x,
+            last_y,
+        },
+        .end = (Vector2){
+            x + delta_x,
+            start_y + random_offset,
+        }};
 
-    // Apply the forced movement before applying the random change
-    if (forced_up)
-    {
-      y -= LINE_SECTOR_MAX_OFFSET_Y; // Move up if forced
-    }
-    else if (forced_down)
-    {
-      y += LINE_SECTOR_MAX_OFFSET_Y; // Move down if forced
-    }
-    else if (up)
-    {
-      y -= LINE_SECTOR_MAX_OFFSET_Y; // Randomly move up
-    }
-    else
-    {
-      y += LINE_SECTOR_MAX_OFFSET_Y; // Randomly move down
-    }
+    x += delta_x; // Step x forward
   }
 }
 
-void lunar_lander_draw_line_sectors()
+void lunar_lander_draw_map()
 {
-  for (int i = 1; i < LINE_SECTORS_NUM; i++)
+  for (int i = 0; i < LINE_NUM; i++)
   {
-    DrawLine(lunar_lander.line_sectors[i - 1].x, lunar_lander.line_sectors[i - 1].y, lunar_lander.line_sectors[i].x, lunar_lander.line_sectors[i].y, WHITE);
+    Color color = WHITE;
+    bool plotting_start = i > lunar_lander.lander_start_index && i < lunar_lander.lander_end_index;
+    bool plotting_goal = i > lunar_lander.lander_goal_start_index && i < lunar_lander.lander_goal_end_index;
+    if (plotting_start)
+    {
+      color = GREEN;
+    }
+    else if (plotting_goal)
+    {
+      color = BLUE;
+    }
+    // DrawCircle(lunar_lander.lines[i].start.x, lunar_lander.lines[i].start.y, 5, RED);
+    DrawLine(lunar_lander.lines[i].start.x, lunar_lander.lines[i].start.y, lunar_lander.lines[i].end.x, lunar_lander.lines[i].end.y, color);
   }
 }
