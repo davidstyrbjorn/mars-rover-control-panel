@@ -106,9 +106,15 @@ void up_arrow_button(void)
   printf("Up arrow\n");
 }
 
-void left_arrow_button(void) {}
+void left_arrow_button(void)
+{
+  printf("Left arrow\n");
+}
 
-void right_arrow_button(void) {}
+void right_arrow_button(void)
+{
+  printf("Right arrow\n");
+}
 
 void handle_button_interaction(Clay_ElementId element_id, Clay_PointerData pointerInfo, intptr_t userData)
 {
@@ -122,11 +128,12 @@ void handle_button_interaction(Clay_ElementId element_id, Clay_PointerData point
   }
 }
 
+#define BUTTON_ID "button"
 void button_element(int idx, Clay_String text, ButtonCallback callback)
 {
-#define BUTTON_ID "button"
   CLAY({
       .id = CLAY_IDI(BUTTON_ID, idx),
+      .layout = buttonLayoutConfig,
       .backgroundColor = Clay_Hovered() ? ColorButtonHover : ColorButton,
       .cornerRadius = CLAY_CORNER_RADIUS(8),
   })
@@ -140,12 +147,19 @@ void arrow_button_element(int idx, Texture *texture, ButtonCallback callback)
 {
   CLAY({
       .id = CLAY_IDI(BUTTON_ID, idx),
-      .layout = {.sizing = {.width = CLAY_SIZING_FIXED(90), .height = CLAY_SIZING_FIXED(90)}},
+      .layout = {.sizing = {.width = CLAY_SIZING_FIXED(90), .height = CLAY_SIZING_FIXED(90)}, .padding = CLAY_PADDING_ALL(8)},
       .backgroundColor = Clay_Hovered() ? ColorButtonHover : ColorButton,
-      .image = {.imageData = texture},
+      .cornerRadius = CLAY_CORNER_RADIUS(8),
   })
   {
     Clay_OnHover(handle_button_interaction, (intptr_t)callback);
+    CLAY({
+        .id = CLAY_IDI("ArrowButtonImage", idx),
+        .layout = {.sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW()}},
+        .image = {.imageData = texture},
+    })
+    {
+    }
   }
 }
 
@@ -157,7 +171,7 @@ Clay_RenderCommandArray build_layout(void)
   // CLAY(CLAY_ID("Main"), CLAY_LAYOUT(---), CLAY_RECTANGLE({.color = ColorBg}))
   CLAY({
       .id = CLAY_ID("Main"),
-      .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16},
+      .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, .padding = CLAY_PADDING_ALL(8), .childGap = 16},
       .backgroundColor = ColorBg,
   })
   {
@@ -169,7 +183,6 @@ Clay_RenderCommandArray build_layout(void)
         .layout = {
             .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(50)},
             .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
-            .childGap = 16,
             .padding = CLAY_PADDING_ALL(8),
         },
         .backgroundColor = ColorLight,
@@ -191,7 +204,7 @@ Clay_RenderCommandArray build_layout(void)
       //      CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
       CLAY({
           .id = CLAY_ID("SideBar1"),
-          .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16},
+          .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = CLAY_PADDING_ALL(8), .childGap = 16},
           .backgroundColor = ColorLight,
           .cornerRadius = CLAY_CORNER_RADIUS(8),
       })
@@ -221,14 +234,12 @@ Clay_RenderCommandArray build_layout(void)
       //      CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
       CLAY({
           .id = CLAY_ID("SideBar2"),
-          .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16},
+          .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = CLAY_PADDING_ALL(8), .childGap = 16, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = 0}},
           .backgroundColor = ColorLight,
           .cornerRadius = CLAY_CORNER_RADIUS(8),
       })
       {
         arrow_button_element(ArrowUpButtonID, &upArrowTexture, up_arrow_button);
-        // CLAY(CLAY_ID("ArrowBottomRow"),
-        //  CLAY_LAYOUT(---))
         CLAY({
             .id = CLAY_ID("ArrowButtonRow"),
             .layout = {.layoutDirection = CLAY_LEFT_TO_RIGHT, .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)}, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = 0}, .childGap = 78},
