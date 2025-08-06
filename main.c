@@ -42,15 +42,18 @@ const Clay_LayoutConfig buttonLayoutConfig = {
 // =================================
 //          ELEMENT IDs
 // =================================
-static const char *PowerOnButtonID = "power-on-btn";
-static const char *PowerThrustersButtonID = "power-thrusters-btn";
-static const char *CollectSamplesButtonID = "collect-samples-btn";
-static const char *EmergencyShutdownButtonID = "emergency-shutdown-btn";
-static const char *InitDescendButtonID = "init-controlled-descend-btn";
-static const char *InitManualControlButtonID = "init-manual-control-btn";
-static const char *ArrowRightButtonID = "arrow-right-button-id";
-static const char *ArrowLeftButtonID = "arrow-left-button-id";
-static const char *ArrowUpButtonID = "arrow-up-button-id";
+typedef enum IDS
+{
+  PowerOnButtonID = 0,
+  PowerThrustersButtonID,
+  CollectSamplesButtonID,
+  EmergencyShutdownButtonID,
+  InitDescendButtonID,
+  InitManualControlButtonID,
+  ArrowRightButtonID,
+  ArrowLeftButtonID,
+  ArrowUpButtonID,
+} IDS;
 
 // 16:9 resolution
 const float ScreenWidth = 1400.0f; // UPDATED
@@ -62,6 +65,8 @@ Texture rightArrowTexture;
 Texture leftArrowTexture;
 Texture upArrowTexture;
 const float ArrowImageSize = 80;
+
+char *dyn_string;
 
 // =================================
 //          BUTTON CALLBACKS
@@ -117,25 +122,30 @@ void handle_button_interaction(Clay_ElementId element_id, Clay_PointerData point
   }
 }
 
-void button_element(const char *id, Clay_String text, ButtonCallback callback)
+void button_element(int idx, Clay_String text, ButtonCallback callback)
 {
-  CLAY(CLAY_ID(id),
-       CLAY_LAYOUT(buttonLayoutConfig),
-       CLAY_RECTANGLE({.color = Clay_Hovered() ? ColorButtonHover : ColorButton, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}),
-       Clay_OnHover(handle_button_interaction, (intptr_t)callback))
+#define BUTTON_ID "button"
+  CLAY({
+      .id = CLAY_IDI(BUTTON_ID, idx),
+      .backgroundColor = Clay_Hovered() ? ColorButtonHover : ColorButton,
+      .cornerRadius = CLAY_CORNER_RADIUS(8),
+  })
   {
+    Clay_OnHover(handle_button_interaction, (intptr_t)callback);
     CLAY_TEXT(text, CLAY_TEXT_CONFIG(ButtonTextConfig));
   }
 }
 
-void arrow_button_element(const char *id, Texture *texture, ButtonCallback callback)
+void arrow_button_element(int idx, Texture *texture, ButtonCallback callback)
 {
-  CLAY(CLAY_ID(id),
-       CLAY_LAYOUT({.sizing = {.width = CLAY_SIZING_FIXED(90), .height = CLAY_SIZING_FIXED(90)}}),
-       CLAY_RECTANGLE({.color = Clay_Hovered() ? ColorButtonHover : ColorButton, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}),
-       CLAY_IMAGE({.sourceDimensions = {ArrowImageSize, ArrowImageSize}, .imageData = texture}),
-       Clay_OnHover(handle_button_interaction, (intptr_t)callback))
+  CLAY({
+      .id = CLAY_IDI(BUTTON_ID, idx),
+      .layout = {.sizing = {.width = CLAY_SIZING_FIXED(90), .height = CLAY_SIZING_FIXED(90)}},
+      .backgroundColor = Clay_Hovered() ? ColorButtonHover : ColorButton,
+      .image = {.imageData = texture},
+  })
   {
+    Clay_OnHover(handle_button_interaction, (intptr_t)callback);
   }
 }
 
@@ -144,20 +154,47 @@ Clay_RenderCommandArray build_layout(void)
   // Create layout
   Clay_BeginLayout();
 
-  CLAY(CLAY_ID("Main"), CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16}), CLAY_RECTANGLE({.color = ColorBg}))
+  // CLAY(CLAY_ID("Main"), CLAY_LAYOUT(---), CLAY_RECTANGLE({.color = ColorBg}))
+  CLAY({
+      .id = CLAY_ID("Main"),
+      .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16},
+      .backgroundColor = ColorBg,
+  })
   {
-    CLAY(CLAY_ID("Header"),
-         CLAY_LAYOUT({.sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(50)}, .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER}, .childGap = 16, .padding = {32}}),
-         CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+    // CLAY(CLAY_ID("Header"),
+    //      CLAY_LAYOUT(---),
+    //      CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+    CLAY({
+        .id = CLAY_ID("Header"),
+        .layout = {
+            .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(50)},
+            .childAlignment = {CLAY_ALIGN_X_CENTER, CLAY_ALIGN_Y_CENTER},
+            .childGap = 16,
+            .padding = CLAY_PADDING_ALL(8),
+        },
+        .backgroundColor = ColorLight,
+        .cornerRadius = CLAY_CORNER_RADIUS(8),
+    })
     {
       CLAY_TEXT(CLAY_STRING("Mars Rover Control Panel"), CLAY_TEXT_CONFIG(HeaderTextConfig));
     }
 
-    CLAY(CLAY_ID("CenterContainer"), CLAY_LAYOUT({.sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, .childGap = 16}), CLAY_RECTANGLE({.color = ColorBg}))
+    // CLAY(CLAY_ID("CenterContainer"), CLAY_LAYOUT(---), CLAY_RECTANGLE({.color = ColorBg}))
+    CLAY({
+        .id = CLAY_ID("CenterContainer"),
+        .layout = {.sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_GROW()}, .childGap = 16},
+        .backgroundColor = ColorBg,
+    })
     {
-      CLAY(CLAY_ID("SideBar1"),
-           CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16}),
-           CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+      // CLAY(CLAY_ID("SideBar1"),
+      //      CLAY_LAYOUT(),
+      //      CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+      CLAY({
+          .id = CLAY_ID("SideBar1"),
+          .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16},
+          .backgroundColor = ColorLight,
+          .cornerRadius = CLAY_CORNER_RADIUS(8),
+      })
       {
         // When id's are button_1, button_2, button_3, button_4, they all seem to get the same hash?
         // Should investigate the exact output of the clay hashing function
@@ -167,19 +204,35 @@ Clay_RenderCommandArray build_layout(void)
         button_element(EmergencyShutdownButtonID, CLAY_STRING("Emergency Shutdown"), emergency_shutdown_button);
       }
 
-      CLAY(CLAY_ID("MainContent"),
-           CLAY_LAYOUT({.sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW()}}),
-           CLAY_RECTANGLE({.color = ColorBlack, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+      // CLAY(CLAY_ID("MainContent"),
+      //      CLAY_LAYOUT(---),
+      //      CLAY_RECTANGLE({.color = ColorBlack, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+      CLAY({
+          .id = CLAY_ID("GameView"),
+          .layout = {.sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW()}},
+          .backgroundColor = ColorBlack,
+          .cornerRadius = CLAY_CORNER_RADIUS(8),
+      })
       {
       }
 
-      CLAY(CLAY_ID("SideBar2"),
-           CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = 0}}),
-           CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+      // CLAY(CLAY_ID("SideBar2"),
+      //      CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = 0}}),
+      //      CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+      CLAY({
+          .id = CLAY_ID("SideBar2"),
+          .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {.width = CLAY_SIZING_FIXED(300), .height = CLAY_SIZING_GROW()}, .padding = {16, 16}, .childGap = 16},
+          .backgroundColor = ColorLight,
+          .cornerRadius = CLAY_CORNER_RADIUS(8),
+      })
       {
         arrow_button_element(ArrowUpButtonID, &upArrowTexture, up_arrow_button);
-        CLAY(CLAY_ID("ArrowBottomRow"),
-             CLAY_LAYOUT({.layoutDirection = CLAY_LEFT_TO_RIGHT, .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)}, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = 0}, .childGap = 78}))
+        // CLAY(CLAY_ID("ArrowBottomRow"),
+        //  CLAY_LAYOUT(---))
+        CLAY({
+            .id = CLAY_ID("ArrowButtonRow"),
+            .layout = {.layoutDirection = CLAY_LEFT_TO_RIGHT, .sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_FIXED(100)}, .childAlignment = {.x = CLAY_ALIGN_X_CENTER, .y = 0}, .childGap = 78},
+        })
         {
           arrow_button_element(ArrowLeftButtonID, &leftArrowTexture, left_arrow_button);
           arrow_button_element(ArrowRightButtonID, &rightArrowTexture, right_arrow_button);
@@ -189,9 +242,15 @@ Clay_RenderCommandArray build_layout(void)
       }
     }
 
-    CLAY(CLAY_ID("Footer"),
-         CLAY_LAYOUT({.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(200)}, .childAlignment = {0, 0}, .childGap = 16, .padding = {32}}),
-         CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+    // CLAY(CLAY_ID("Footer"),
+    //      CLAY_LAYOUT(---),
+    //      CLAY_RECTANGLE({.color = ColorLight, .cornerRadius = {8.0f, 8.0f, 8.0f, 8.0f}}))
+    CLAY({
+        .id = CLAY_ID("Footer"),
+        .layout = {.layoutDirection = CLAY_TOP_TO_BOTTOM, .sizing = {CLAY_SIZING_GROW(), CLAY_SIZING_FIXED(200)}, .childAlignment = {0, 0}, .childGap = 16, .padding = {32}},
+        .backgroundColor = ColorLight,
+        .cornerRadius = CLAY_CORNER_RADIUS(8),
+    })
     {
       CLAY_TEXT(CLAY_STRING(""), CLAY_TEXT_CONFIG(FooterTextConfig));
       CLAY_TEXT(CLAY_STRING("> Samples Collected by Rover"), CLAY_TEXT_CONFIG(FooterTextConfig));
@@ -203,11 +262,10 @@ Clay_RenderCommandArray build_layout(void)
   return Clay_EndLayout();
 }
 
-void insert_font(uint32_t font_id, int font_size, const char *path)
+void insert_font(Font *fonts, uint32_t font_id, int font_size, const char *path)
 {
-  Raylib_fonts[font_id].fontId = font_id;
-  Raylib_fonts[font_id].font = LoadFontEx(path, font_size * 2, NULL, 0);
-  SetTextureFilter(Raylib_fonts[font_id].font.texture, TEXTURE_FILTER_TRILINEAR);
+  fonts[font_id] = LoadFontEx(path, font_size * 2, NULL, 0);
+  SetTextureFilter(fonts[font_id].texture, TEXTURE_FILTER_TRILINEAR);
 }
 
 void handle_clay_error(Clay_ErrorData errorData)
@@ -230,19 +288,19 @@ int main(void)
       .width = ScreenWidth,
       .height = ScreenHeight,
   };
-  Clay_SetMeasureTextFunction(Raylib_MeasureText);
   Clay_Initialize(memory_arena, dimensions, (Clay_ErrorHandler){handle_clay_error});
 
-  // ...more init??
   SetTargetFPS(144);
 
-  insert_font(FontIdNormal16, 16, "resources/0xProto-Regular.ttf");
-  insert_font(FontIdNormal24, 24, "resources/0xProto-Regular.ttf");
-  insert_font(FontIdBold16, 16, "resources/0xProto-Bold.ttf");
-  insert_font(FontIdBold24, 24, "resources/0xProto-Bold.ttf");
-  insert_font(FontIdItalic16, 16, "resources/0xProto-Italic.ttf");
-  insert_font(FontIdItalic24, 24, "resources/0xProto-Italic.ttf");
-  insert_font(FontIdTitle, 36, "resources/0xProto-Regular.ttf");
+  Font fonts[16];
+  insert_font(fonts, FontIdNormal16, 16, "resources/0xProto-Regular.ttf");
+  insert_font(fonts, FontIdNormal24, 24, "resources/0xProto-Regular.ttf");
+  insert_font(fonts, FontIdBold16, 16, "resources/0xProto-Bold.ttf");
+  insert_font(fonts, FontIdBold24, 24, "resources/0xProto-Bold.ttf");
+  insert_font(fonts, FontIdItalic16, 16, "resources/0xProto-Italic.ttf");
+  insert_font(fonts, FontIdItalic24, 24, "resources/0xProto-Italic.ttf");
+  insert_font(fonts, FontIdTitle, 36, "resources/0xProto-Regular.ttf");
+  Clay_SetMeasureTextFunction(Raylib_MeasureText, fonts);
 
   rightArrowTexture = LoadTextureFromImage(LoadImage("resources/arrow-right.png"));
   leftArrowTexture = LoadTextureFromImage(LoadImage("resources/arrow-left.png"));
@@ -274,7 +332,7 @@ int main(void)
     BeginDrawing();
     ClearBackground(BLACK);
     // TODO: render the Clay layout
-    Clay_Raylib_Render(renderCommands);
+    Clay_Raylib_Render(renderCommands, fonts);
     EndDrawing();
   }
 
