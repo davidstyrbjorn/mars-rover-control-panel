@@ -117,17 +117,17 @@ void init_manual_control_button(void)
 
 void up_arrow_button(void)
 {
-  printf("Up arrow\n");
+  lander_apply_force(xy(0, -200));
 }
 
 void left_arrow_button(void)
 {
-  printf("Left arrow\n");
+  lander_apply_force(xy(-100, 0));
 }
 
 void right_arrow_button(void)
 {
-  printf("Right arrow\n");
+  lander_apply_force(xy(100, 0));
 }
 
 void handle_button_interaction(Clay_ElementId element_id, Clay_PointerData pointerInfo, intptr_t userData)
@@ -371,10 +371,12 @@ int main(void)
 
     if (game_window.has_loaded_game_texture)
     {
+      lunar_lander_update(dt);
+
       // Render game scene to the render texture
       BeginTextureMode(game_window.game_texture);
       ClearBackground(BLACK); // Background color of the game
-      lunar_lander_draw_map();
+      lunar_lander_render();
       EndTextureMode();
     }
 

@@ -1,25 +1,52 @@
 #include "lunar_lander.h"
+#include "raymath.h"
 
 #include <time.h>
 #include <assert.h>
 
-static LunarLander lunar_lander;
+static LunarLander ll;
+
+// Size constants for the lander
+#define LanderBodyWidth 30
+#define LanderBodyHeight 30
+#define LanderLegsHeight 10
+#define LanderHeight LanderBodyHeight + LanderLegsHeight
+#define LanderWidth LanderBodyWidth
+
+#define LANDER_MASS 1.0f
+#define GRAVITY_FORCE 50.0f
+#define THRUST_FORCE 200.0f
 
 void lunar_lander_init(int screen_width, int screen_height)
 {
+  ll.lander_pos = xy(0, 0);
+  ll.lander_body[T0] = xy(0, LanderBodyHeight);
+  ll.lander_body[T1] = xy(LanderBodyWidth, LanderBodyHeight);
+  ll.lander_body[T2] = xy(LanderBodyWidth / 2.0, 0);
+  ll.lander_body[L0] = xy(10, LanderBodyHeight);
+  ll.lander_body[L1] = xy(5, LanderBodyHeight + LanderLegsHeight);
+  ll.lander_body[L2] = xy(LanderBodyWidth - 10, LanderBodyHeight);
+  ll.lander_body[L3] = xy(LanderBodyWidth - 5, LanderBodyHeight + LanderLegsHeight);
+
+  ll.lander_pos = xy(100, 50); // Start somewhere on screen
+  ll.lander_vel = xy(0, 0);    // Start at rest
+  ll.lander_force = xy(0, 0);  // No initial force
+  ll.lander_mass = LANDER_MASS;
+
+  /// Create the landscape
   SetRandomSeed((unsigned int)time(NULL));
 
   float x = 0;
   float start_y = screen_height - LINE_START_Y;
   const float delta_x = (float)screen_width / LINE_NUM;
 
-  lunar_lander.lander_start_index = GetRandomValue(0, LINE_NUM / 2);
-  lunar_lander.lander_end_index = lunar_lander.lander_start_index + LANDER_LINE_NUM;
-  assert(lunar_lander.lander_end_index < LINE_NUM);
+  ll.lander_start_index = GetRandomValue(0, LINE_NUM / 2);
+  ll.lander_end_index = ll.lander_start_index + LANDER_LINE_NUM;
+  assert(ll.lander_end_index < LINE_NUM);
 
-  lunar_lander.lander_goal_start_index = GetRandomValue((LINE_NUM / 2) + 1, LINE_NUM - LANDER_LINE_NUM - 1);
-  lunar_lander.lander_goal_end_index = lunar_lander.lander_goal_start_index + LANDER_LINE_NUM;
-  assert(lunar_lander.lander_goal_end_index < LINE_NUM);
+  ll.lander_goal_start_index = GetRandomValue((LINE_NUM / 2) + 1, LINE_NUM - LANDER_LINE_NUM - 1);
+  ll.lander_goal_end_index = ll.lander_goal_start_index + LANDER_LINE_NUM;
+  assert(ll.lander_goal_end_index < LINE_NUM);
 
   for (int i = 0; i < LINE_NUM; i++)
   {
@@ -27,17 +54,17 @@ void lunar_lander_init(int screen_width, int screen_height)
     float random_offset = GetRandomValue(-LINE_OFFSET_Y, LINE_OFFSET_Y);
     if (i != 0)
     {
-      last_y = lunar_lander.lines[i - 1].end.y;
+      last_y = ll.lines[i - 1].end.y;
     }
 
-    bool plotting_start = i >= lunar_lander.lander_start_index && i < lunar_lander.lander_end_index;
-    bool plotting_goal = i >= lunar_lander.lander_goal_start_index && i < lunar_lander.lander_goal_end_index;
+    bool plotting_start = i >= ll.lander_start_index && i < ll.lander_end_index;
+    bool plotting_goal = i >= ll.lander_goal_start_index && i < ll.lander_goal_end_index;
     if (plotting_start || plotting_goal)
     {
       random_offset = 0;
     }
 
-    lunar_lander.lines[i] = (Line){
+    ll.lines[i] = (Line){
         .start = (Vector2){
             x,
             last_y,
@@ -51,13 +78,45 @@ void lunar_lander_init(int screen_width, int screen_height)
   }
 }
 
-void lunar_lander_draw_map()
+void lander_apply_force(Vector2 force)
+{
+  ll.lander_force = Vector2Add(ll.lander_force, force);
+}
+
+static void draw_lander()
+{
+  // All points on the procedural lander is simply offset by the current lander position
+  Vector2 lander_points[NUM_POINTS];
+  for (int i = 0; i < NUM_POINTS; i++)
+  {
+    lander_points[i] = Vector2Add(ll.lander_body[i], ll.lander_pos);
+  }
+  DrawTriangleLines(lander_points[T0], lander_points[T1], lander_points[T2], WHITE);
+  DrawLineV(lander_points[L0], lander_points[L1], WHITE);
+  DrawLineV(lander_points[L2], lander_points[L3], WHITE);
+}
+
+void lunar_lander_update(float dt)
+{
+  // Reset all accumulated forces
+  ll.lander_force = xy(0, 0);
+
+  // Apply gravity force
+  lander_apply_force(xy(0, GRAVITY_FORCE));
+
+  // Euler integration of force into a velocity, then updating position
+  Vector2 acceleration = Vector2Scale(ll.lander_force, 1.0f / ll.lander_mass);
+  ll.lander_vel = Vector2Add(ll.lander_vel, Vector2Scale(acceleration, dt));
+  ll.lander_pos = Vector2Add(ll.lander_pos, Vector2Scale(ll.lander_vel, dt));
+}
+
+void lunar_lander_render()
 {
   for (int i = 0; i < LINE_NUM; i++)
   {
     Color color = WHITE;
-    bool plotting_start = i > lunar_lander.lander_start_index && i < lunar_lander.lander_end_index;
-    bool plotting_goal = i > lunar_lander.lander_goal_start_index && i < lunar_lander.lander_goal_end_index;
+    bool plotting_start = i > ll.lander_start_index && i < ll.lander_end_index;
+    bool plotting_goal = i > ll.lander_goal_start_index && i < ll.lander_goal_end_index;
     if (plotting_start)
     {
       color = GREEN;
@@ -66,7 +125,7 @@ void lunar_lander_draw_map()
     {
       color = BLUE;
     }
-    // DrawCircle(lunar_lander.lines[i].start.x, lunar_lander.lines[i].start.y, 5, RED);
-    DrawLine(lunar_lander.lines[i].start.x, lunar_lander.lines[i].start.y, lunar_lander.lines[i].end.x, lunar_lander.lines[i].end.y, color);
+    DrawLine(ll.lines[i].start.x, ll.lines[i].start.y, ll.lines[i].end.x, ll.lines[i].end.y, color);
   }
+  draw_lander();
 }
