@@ -18,7 +18,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(raylib)
 
-add_executable(mars_rover_control_panel main.c)
+add_executable(mars_rover_control_panel main.c lunar_lander.c)
 
 target_compile_options(mars_rover_control_panel PUBLIC)
 target_include_directories(mars_rover_control_panel PUBLIC .)
