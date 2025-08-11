@@ -99,11 +99,8 @@ static void draw_lander()
 
 void lunar_lander_update(float dt)
 {
-  // Reset all accumulated forces
-  ll.lander_force = xy(0, 0);
-
   // Apply gravity force
-  lander_apply_force(xy(0, GRAVITY_FORCE));
+  ll.lander_force = xy(0, GRAVITY_FORCE);
   // Apply thruster force
   ll.lander_force = Vector2Add(ll.lander_force, ll.thrust_force);
 
