@@ -15,7 +15,7 @@ static LunarLander ll;
 
 #define LANDER_MASS 1.0f
 #define GRAVITY_FORCE 50.0f
-#define THRUST_FORCE 200.0f
+#define THRUST_FORCE 100.0f
 
 void lunar_lander_init(int screen_width, int screen_height)
 {
@@ -32,6 +32,7 @@ void lunar_lander_init(int screen_width, int screen_height)
   ll.lander_vel = xy(0, 0);    // Start at rest
   ll.lander_force = xy(0, 0);  // No initial force
   ll.lander_mass = LANDER_MASS;
+  ll.thrust_force = xy(0, 0);
 
   /// Create the landscape
   SetRandomSeed((unsigned int)time(NULL));
@@ -78,9 +79,9 @@ void lunar_lander_init(int screen_width, int screen_height)
   }
 }
 
-void lander_apply_force(Vector2 force)
+void lunar_lander_set_thruster_force(Vector2 thrust)
 {
-  ll.lander_force = Vector2Add(ll.lander_force, force);
+  ll.thrust_force = thrust;
 }
 
 static void draw_lander()
@@ -103,6 +104,8 @@ void lunar_lander_update(float dt)
 
   // Apply gravity force
   lander_apply_force(xy(0, GRAVITY_FORCE));
+  // Apply thruster force
+  ll.lander_force = Vector2Add(ll.lander_force, ll.thrust_force);
 
   // Euler integration of force into a velocity, then updating position
   Vector2 acceleration = Vector2Scale(ll.lander_force, 1.0f / ll.lander_mass);

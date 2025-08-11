@@ -117,17 +117,18 @@ void init_manual_control_button(void)
 
 void up_arrow_button(void)
 {
-  lander_apply_force(xy(0, -200));
+  lunar_lander_set_thruster_force(xy(0, -200));
+  // printf("up arrow button!\n");
 }
 
 void left_arrow_button(void)
 {
-  lander_apply_force(xy(-100, 0));
+  lunar_lander_set_thruster_force(xy(-50, 0));
 }
 
 void right_arrow_button(void)
 {
-  lander_apply_force(xy(100, 0));
+  lunar_lander_set_thruster_force(xy(50, 0));
 }
 
 void handle_button_interaction(Clay_ElementId element_id, Clay_PointerData pointerInfo, intptr_t userData)
@@ -139,6 +140,19 @@ void handle_button_interaction(Clay_ElementId element_id, Clay_PointerData point
     {
       cb();
     }
+  }
+}
+
+void handle_thrust_button_interaction(Clay_ElementId element_id, Clay_PointerData pointerInfo, intptr_t userData)
+{
+  ButtonCallback cb = (ButtonCallback)userData;
+  if (pointerInfo.state == CLAY_POINTER_DATA_PRESSED)
+  {
+    cb();
+  }
+  else if (pointerInfo.state == CLAY_POINTER_DATA_RELEASED)
+  {
+    lunar_lander_set_thruster_force(xy(0, 0));
   }
 }
 
@@ -166,7 +180,7 @@ void arrow_button_element(int idx, Texture *texture, ButtonCallback callback)
       .cornerRadius = CLAY_CORNER_RADIUS(8),
   })
   {
-    Clay_OnHover(handle_button_interaction, (intptr_t)callback);
+    Clay_OnHover(handle_thrust_button_interaction, (intptr_t)callback);
     CLAY({
         .id = CLAY_IDI("ArrowButtonImage", idx),
         .layout = {.sizing = {.width = CLAY_SIZING_GROW(), .height = CLAY_SIZING_GROW()}},

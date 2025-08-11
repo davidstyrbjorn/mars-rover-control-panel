@@ -44,6 +44,8 @@ typedef struct LunarLander
   Vector2 lander_force;
   Vector2 lander_vel;
   float lander_mass;
+
+  Vector2 thrust_force;
 } LunarLander;
 
 static Vector2 xy(float x, float y)
@@ -57,4 +59,4 @@ static Vector2 xy(float x, float y)
 void lunar_lander_init(int screen_width, int screen_height);
 void lunar_lander_update(float dt);
 void lunar_lander_render();
-void lander_apply_force(Vector2 force);
+void lunar_lander_set_thruster_force(Vector2 thrust);
